@@ -1,0 +1,254 @@
+/***************************************************************
+/* Spring
+/**************************************************************/
+
+// Usage
+// ===========
+// Graph g;
+// Resource r;
+// g.addNode(enterprise = new Node("enterprise", "Enterprise"));
+// g.addNode(earth = new Node("earth", "Earth"));
+// g.addNode(kirk = new Node("kirk", "Kirk"));
+// g.addNode(spock = new Node("spock", "Spock"));
+// 
+// g.addEdge(new Edge(universe, enterprise));
+// g.addEdge(new Edge(enterprise, kirk));
+// g.addEdge(new Edge(enterprise, spock));
+// g.addEdge(new Edge(universe, earth));
+// g.addEdge(new Edge(earth, kirk));
+
+class Graph {
+  ArrayList nodes;
+  ArrayList edges;
+	ParticleSystem ps;
+	Node selectedNode;
+	
+	boolean dragging = false;
+	
+	Node dragNode;
+
+	float EDGE_LENGTH = 300;
+	float EDGE_STRENGTH = 0.5;
+	float SPACER_STRENGTH = 1000;
+	
+  public Graph() {
+    nodes = new ArrayList();
+  	edges = new ArrayList();
+
+    // Zero gravity, mid-to-low drag
+		ps = new ParticleSystem(0, 0, 0, 0.1);
+		ps.setDrag( 0.2 );
+	}
+  
+  // gets node by resource id
+  void getNodeById(String id) {
+    int i = 0; Node n = null;
+    while (i < g.nodes.size()) {
+  		if (this.nodes[i].subject.id==id)
+  			return this.nodes[i];
+      i++;
+    }
+    return null;
+  }
+  
+  void selectNode(Node n) {
+    selectedNode.subject.setClosed();
+    selectedNode = n;
+
+    $('aside').html(selectedNode.getSubject().html);
+
+    selectedNode.subject.setOpen();
+    dragging = true;
+  }
+  
+	public void setSelectedNode(Node sNode) {
+		this.selectedNode = sNode;
+	}
+	
+	public Node getSelectedNode() {
+		return this.selectedNode;
+	}
+	
+	public void setDragNode(Node n) {
+	  if (this.dragNode != null) {
+	    this.dragNode.setDragging(false);
+	  }
+	  this.dragNode = n;
+	  if (n != null)
+	    n.setDragging(true);
+	}
+	
+	public Node getDragNode() {
+	  return this.dragNode;
+	}
+	
+	public boolean isDragging() {
+	  return (this.dragNode) ? this.dragging : false
+	}
+
+  public void addEdge(Edge e) {
+    // Edge exists?
+    int i = 0; boolean found = false;
+    while (i < edges.size() && !found) {
+      found = ((edges.get(i).getFrom() == e.getFrom() && (edges.get(i)).getTo() == e.getTo()) || (edges.get(i).getFrom() == e.getTo() && (edges.get(i)).getTo() == e.getFrom()));
+      i++;
+    }
+
+    if (!found) {
+      edges.add(e);
+			// Add a spring
+			ps.makeSpring( e.getFrom().getParticle(), e.getTo().getParticle(), EDGE_STRENGTH, EDGE_STRENGTH, EDGE_LENGTH );
+			e.getTo().getParticle().position().set( mouseX, mouseY, 0 );
+		}
+  }
+
+  public void addNode(Node n) {
+		// TODO: Don't allow duplicates
+    n.setGraph(this);
+		nodes.add(n);
+		
+	  for ( int i = 0; i < nodes.size(); i++ )
+	  {
+			 if (n!=nodes[i])
+			 	ps.makeAttraction( n.getParticle(), nodes[i].getParticle(), -SPACER_STRENGTH, 15 );
+	  }
+  }
+  
+  public void removeEdge(Edge e) {
+		var idx = $.inArray(e, edges);
+    if (idx>=0)
+	    edges.remove(idx);
+  }
+  
+  public void removeNode(Node n) {
+    // delete concerning springs
+    ArrayList springs = this.ps.springs.clone();
+    for (int i=0; i<springs.size(); i++) {
+      if (n.p == springs[i].a || n.p == springs[i].b)
+        this.ps.removeSpring(springs[i]);
+    }
+    // delete concerning attractions
+    ArrayList attractions = this.ps.attractions.clone();
+    for (int i=0; i<attractions.size(); i++) {
+      if (n.p == attractions[i].a || n.p == attractions[i].b)
+        this.ps.removeAttraction(attractions[i]);
+    }
+		// remove concerning edges
+		ArrayList edgs = this.edges.clone();
+    for (int i=0; i<edgs.size(); i++) {
+      if (n == edgs[i].from || n == edgs[i].to)
+        removeEdge(edgs[i]);
+    }
+		// remove corresponding particle
+		this.ps.removeParticle(n.p);
+		// finally remove the node itself
+		var idx = $.inArray(n, nodes);
+    if (idx>=0)
+	    nodes.remove(idx);
+	    
+	  $("#path li[id=resource_"+idx+"]").remove();
+	    
+	  if (nodes.size() == 0) {
+	    console.log("TODO: there are no nodes left. clean it up!");
+	    // clear workspace return;
+	  }
+        
+  }
+  
+  
+  
+  public ArrayList getOutgoingEdges(Node n) {
+    ArrayList outgoingEdges = new ArrayList();
+    for (int i=0; i < edges.size(); i++) {
+      Edge e = (Edge)edges.get(i);
+      if (e.getFrom() == n)
+        outgoingEdges.add(e);
+    }
+    return outgoingEdges;
+  }
+  
+  public ArrayList getIncomingEdges(Node n) {
+    ArrayList incomingEdges = new ArrayList();
+    for (int i=0; i < edges.size(); i++) {
+      Edge e = (Edge)edges.get(i);
+      if (e.getTo() == n)
+        incomingEdges.add(e);
+    }
+    return incomingEdges;
+  }
+	
+	public void unVisitNodes() {
+		for(int i = 0; i < nodes.size(); i++) {
+			nodes[i].setVisited(false);
+		}
+	}
+
+	public void depthFirstWalk(Node n, ArrayList result) {		
+		if (!result) {
+			result = new ArrayList();
+			unVisitNodes();
+		}
+		
+		if (!n.isVisited()) {
+			n.setVisited(true);
+			result.add(n);
+		}
+		
+		ArrayList edges = n.getOutgoingEdges();
+		for(int i = 0; i < edges.size(); i++) {
+			if (!edges.get(i).getTo().isVisited())
+				depthFirstWalk(edges.get(i).getTo(), result);
+		}
+		
+    return result;
+	}
+	
+	// Drawing stuff
+	// *******************************************************************
+	
+	public void tick() {
+    ps.tick(1.0);
+  }
+
+	public void draw() {
+		// Draw edges
+    for ( int i = 0; i < edges.size(); i++ ) {
+         Edge e = edges.get(i);
+         if (e) {
+           e.update();
+           e.draw();
+         }
+    }
+
+		// Draw nodes
+		for (int i=0; i < nodes.size(); i++) {
+			if (nodes[i]!=selectedNode)
+				nodes[i].draw();
+		}
+		
+		// Draw selected Node
+		selectedNode.draw();
+    
+    // TODO: draw active edgeLabel if currently requested
+    
+    // Draw edges
+    for ( int i = 0; i < edges.size(); i++ ) {
+      Edge e = edges.get(i);
+      if (e && e.hovering)
+        e.drawLabel();
+    }
+  }
+  
+  public void checkSelected() {
+    dragNode = null;
+    // Iterate over nodes
+    for (int i=0; i< g.nodes.size(); i++) {
+      if (nodes[i].mouseOver() && dragNode !== nodes[i]) { 
+        dragNode = nodes[i];
+        nodes[i].subject.hovering = true;
+      } else {
+        nodes[i].subject.hovering = false;
+      }
+    }
+  }
+}

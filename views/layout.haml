@@ -1,0 +1,74 @@
+!!!
+%html
+  %head
+    %link(rel="stylesheet" href="/css/global.css")
+    %script{:src => "http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"}
+    %script{:src => "http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.16/jquery-ui.min.js"}
+    %script{:src => "/js/ui.js"}
+    %script{:src => "/js/processing.min.js"} 
+
+    %title Neovigator
+
+  %body
+    %canvas#neoviz
+    %header
+      %section#title
+        %h1 Neovigator
+        %p Neography Browser
+      %section#search
+        %form{:action => "/", :method => "get"}
+          %label Node ID:
+          %input#neoid{:type => "text", :value => "#{@neoid}", :name => "neoid"}
+          %input#loadnode{:type => "submit", :value => "Load", :class => "button"}
+      %br{:style => "clear: both;"}
+    %section#content
+      = yield
+    %aside
+      %div#explanation
+        / Neovigator introduction
+        %h2 About
+        %p
+          Neovigator is an attempt to visually navigate through 
+          %a{:href => "http://neo4j.org"} Neo4j 
+          by using the 
+          %a{:href => "https://github.com/maxdemarzi/neography"} Neography
+          Gem.
+
+          It takes advantage of the latest HTML5 features
+          by using the canvas element for drawing.
+        %h3 Get started
+        %p
+          Start using the browser by just typing in the id of an existing node.
+          You can see the available nodes at
+          %a{:href => "http://localhost:7474", :target => "_blank" } http://localhost:7474  
+          , try loading
+          %a{:href => "/?neoid=1"} 
+            %b Node 1
+          to get started.    
+        %h3 Quirks
+        %p
+          There may be some unexpected behavior. Performance may drop significantly as
+          the number of nodes increases.
+        %h3 Credits
+        %p
+          This project was made by  
+          %a{:href => "http://maxdemarzi.com"} Max De Marzi
+          using: 
+          %a{:href => "http://neo4j.org", :target => "_blank"} Neo4j
+          and
+          %a{:href => "https://github.com/maxdemarzi/neography", :target => "_blank"} Neography
+          , it is based on 
+          %a{:href => "http://askken.heroku.com/", :target => "_blank"} Ask Ken
+          created by 
+          %a{:href => "http://twitter.com/_mql", :target => "_blank"} Michael Aufreiter 
+        %h3 Code          
+        %p
+          Available at
+          %a{:href => "https://github.com/maxdemarzi/neovigator", :target => "_blank"} Github    
+
+      <div id="browser_not_supported">
+      Your Browser is currently not supported.<br/><br/>Try one of these:<br/>
+      <a href="http://www.mozilla.com/en-US/firefox/firefox.html">Firefox 3.6</a><br/>
+      <a href="http://www.apple.com/safari/">Safari 4.0</a><br/>
+      <a href="http://www.google.com/chrome/">Chrome</a><br/>
+      </div>

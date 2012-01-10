@@ -1,0 +1,173 @@
+import( '/js/pjs/Tween.lib' );
+import( '/js/pjs/util.lib' );
+
+color[] colors = new color[12];
+
+colors[0] = color(171, 199, 49);
+colors[1] = color(162, 195, 85);
+colors[2] = color(154, 191, 123);
+colors[3] = color(147, 186, 161);
+colors[4] = color(141, 181, 200);
+colors[5] = color(134, 162, 169);
+colors[6] = color(128, 142, 137);
+colors[7] = color(122, 122, 104);
+colors[8] = color(177, 102, 73);
+colors[9] = color(131, 127, 67);
+colors[10] = color(144, 150, 60);
+colors[11] = color(157, 175, 55);
+
+color LABEL_COLOR = color(150);
+color HIGHLIGHTED_LABEL_COLOR = color(55);
+color DONUT_BACKGROUND = color(255);
+color BACKGROUND = color(234,239,224);
+
+// global constants
+float STROKE_WEIGHT_COLLAPSED = 50;
+float STROKE_WEIGHT_EXPANDED = 60;
+float OUTER_BORDER = 5;
+
+float RADIUS_OPENED = 110;
+float RADIUS_CLOSED = 50;
+
+
+PFont defaultFont = loadFont("/fonts/GraublauWeb-Regular.svg");
+
+int fontSize = 11.3;
+int fontSizeCaption = 16;
+
+int nodeCount = 0;
+
+Resource fetchResource(String resourceId) {
+  // init dummy resource
+  Resource resource = new Resource(resourceId, "", "");
+	nodeCount++;
+	resource.idx = nodeCount;
+  resource.fetchData(); // start fetching data from freebase
+	return resource;
+}
+
+Graph g;
+Resource r;
+
+int selectedEdgeIndex = null;
+
+void resize() {
+	size(window.innerWidth-10, window.innerHeight-15);
+}
+
+void setup() {	
+	myGraph = g = new Graph();
+	// myGraph exposes the graph to the outside world
+	textFont(defaultFont, fontSize);
+  nodeCount = 0;
+  resize();
+  fill(0);
+  smooth();
+  frameRate(30);
+	background(BACKGROUND);
+
+	if (resourceId) {
+		r = fetchResource(resourceId);
+		g.addNode(root = new Node(r));
+		g.selectedNode = root;
+		$('#details').html(r.html);
+	}
+}
+
+void draw() {
+  if (g.nodes.size()>0) {
+    g.tick();
+    background(BACKGROUND);
+    g.draw();
+  }
+}
+
+void mouseMoved() {
+	if (!resourceId) return;
+	
+	if (!g.isDragging()) {
+		Resource r = g.selectedNode.subject;
+		r.checkSelected();
+		    
+    g.checkSelected(); // checkDragged
+  
+		selectedEdgeIndex = null;
+		// Iterate over nodes
+		for (int i=0; i< g.edges.size(); i++) {
+			if (g.edges[i].mouseOver()) {
+				selectedEdgeIndex = i;
+			}
+		}
+	}
+}
+
+
+
+
+
+void addNode(Value val) {
+  Resource r = g.selectedNode.subject;
+	Node n = g.getNodeById(val.getId());
+	
+	// close current resource
+	r.setClosed();
+  
+  DonutSegment seg = r.donut.selectedSegment;
+
+  if (!n) { // not found
+    Resource r2 = fetchResource(val.getId());
+		g.addNode(newNode = new Node(r2));
+		g.addEdge(new Edge(g.selectedNode, newNode, seg));
+		g.setSelectedNode(newNode);
+	} else {
+		g.addEdge(new Edge(g.selectedNode, n, seg));
+		g.setSelectedNode(n);
+		g.selectedNode.subject.setOpen();
+	}
+}
+
+
+
+
+
+void mousePressed() {
+  
+  // ->> g.checkSelected()
+  // g.checkSelected(); // updates g.selectedNode if necessary
+  
+  if (g.dragNode!==g.selectedNode && g.dragNode!=null) {
+    g.selectNode(g.dragNode);
+    
+    return; // that's all
+  }
+
+  Resource r = g.selectedNode.subject;
+
+	if (!resourceId) return;
+  if (mouseButton == LEFT) {
+		Resource r = g.selectedNode.subject;
+		Value selectedValue = r.getSelectedValue();
+		
+		if (selectedValue !== null && selectedValue.hovering) {
+		  addNode(selectedValue);
+		} else if (g.selectedNode != null) {
+		  g.dragging = true;
+		}
+  } else { // Right click
+		// removes resource from graph
+		Resource r = g.selectedNode.subject;
+		g.removeNode(g.selectedNode);
+		g.selectedNode = g.nodes[0];
+	}
+}
+
+
+void mouseReleased() {
+  g.dragging = false;
+}
+
+void mouseDragged() {
+  if (g.getDragNode() != null) {
+    g.getDragNode().setPos(mouseX, mouseY, 0);
+  }
+}

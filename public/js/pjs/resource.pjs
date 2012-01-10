@@ -1,0 +1,426 @@
+/***************************************************************
+/* Attribute
+/**************************************************************/
+
+public class Attribute {
+  String id = "";
+  String name = "";
+  String html = "";
+  Resource r;
+  ArrayList values = new ArrayList();
+
+  public Attribute(String id, String name, Resource r) {
+    this.id = id;
+    this.name = name;
+    this.r = r;
+  }
+  
+  public String getId() {
+    return this.id;
+  }
+  
+  public String getName() {
+    return this.name;
+  }
+  
+  public Value addValue(String id, String name) {
+    Value val = new Value(id, name, this)
+    values.add(val);
+    return val;
+  }
+}
+
+/***************************************************************
+/* Value
+/**************************************************************/
+
+public class Value {
+  String id = "";
+  String name = "";
+  String html = "";
+  Attribute attr;
+  boolean hovering = false; // shares the hovering property from the slice
+
+  public Value(String id, String name, Attribute attr) {
+    this.id = id;
+    this.name = name;
+    this.attr = attr;
+  }
+  
+  public String getId() {
+    return this.id;
+  }
+  
+  public String getName() {
+    return this.name;
+  }
+}
+
+/***************************************************************
+/* Resource
+/**************************************************************/
+
+public class Resource {
+  boolean hovering = false;
+  boolean dragging = false;
+	boolean loading = true;
+	
+	Tween resize;
+       Donut donut;
+	
+	String state = "open";
+
+	boolean loading = true;
+	
+	Attribute selectedAttribute = null;
+	Attribute previousSelectedAttribute = null;
+	
+       boolean open = true;
+	int numValues = 0;
+	
+	int idx = 0; // the resource's unique numeric id in the graph
+	
+	float x;
+	float y;
+
+  // internals
+  ArrayList attributes;
+  int radius = RADIUS_CLOSED;
+
+  float angle = 0; // REMOVE?
+
+  String id = "";
+  String name = "";
+  String html = "";
+  
+  int NUM_LOADING_SEGMENTS = 11;
+  int progress = 0;
+
+  public Resource(String id, String name, String html) {
+    var that = this;
+		this.attributes = new ArrayList();
+		this.id = id;
+    this.name = name;
+    this.html = html;
+    
+    donut = new Donut(275, 275, RADIUS_CLOSED); // TODO!
+    donut.segmentChanged = function() {
+      // this refers to the donut object
+      Attributes.select(this.selectedSegment);
+    };
+    
+    // initialize tweens
+    resize = new Tween(donut, "radius", Tween.strongEaseInOut, RADIUS_CLOSED, RADIUS_OPENED, 1);
+    resize.finished = function() {
+      if (that.state=="open") {
+        that.donut.showLabels = true;
+      }
+    };
+  }
+  
+  public void fetchData() {
+    var json;
+    var that = this;
+    
+    this.loading = true;
+    
+  	$.ajax({
+  		async: true,
+      type: "GET",
+      url: "/resources/show",
+      data: {id: that.id},
+      dataType: 'json',
+      success: function(response) {
+        
+        // apply fetched data
+        that.id = response.data.id;
+        that.name = response.data.name;
+        that.html = response.details_html;
+        
+        $('#sidebar-content').html(response.details_html);
+        int numValues = 0;
+        for (int i = 0; i < response.data.attributes.length(); i++) {
+         Attribute attr = new Attribute(response.data.attributes[i].id, response.data.attributes[i].name, that);
+         DonutSegment seg = new DonutSegment(attr, that.donut);
+         
+         for (int j = 0; j < response.data.attributes[i].values.length(); j++) {
+           Value val = attr.addValue(response.data.attributes[i].values[j].id, response.data.attributes[i].values[j].name);
+           seg.addSlice(val);
+           numValues++;
+         }
+         that.addAttribute(attr);
+         that.donut.addSegment(seg);
+        }
+        
+        // kill this node because it's useless with no values at all
+        if (numValues==0) {
+          g.removeNode(getNodeById(that.id)); // TODO: does not work properly
+          return          
+        }
+
+        // attributes are initialized based on what's in the donut
+        Attributes.init(that.donut);
+        
+        // double work but necessary for now
+        Attributes.select(that.donut.selectedSegment);
+        
+        that.numValues = numValues;
+        that.loading = false;
+        
+        that.resize.start(); // tweening
+        
+        Node n = g.getNodeById(that.id);
+        Path.addNode(n);
+
+      },
+      error: function() {
+        that.loading = false;
+        g.removeNode(getNodeById(that.id)); // TODO: does not work properly
+        // TODO: get rid of that dead node!
+      }
+    });
+  }
+  
+	public void setPos(float x, float y) {
+		this.x = x; // TODO: do we need this.x? -> yes we do / Resource#getX() that delegates to donut.x may help
+		this.y = y; 
+		this.donut.x = x;
+		this.donut.y = y;
+	}
+	
+	public void getSelectedAttribute() {
+	  if (!this.donut.selectedSegment) return null;
+	  return this.donut.selectedSegment.subject;
+	}
+	
+	public void getSelectedValue() {
+	  if (!this.donut.selectedSlice) return null;
+	  return this.donut.selectedSlice.subject;
+	}
+	
+	public String getId() {
+		return this.id;
+	}
+
+  public String getName() {
+    return this.name;
+  }
+
+  public void setClosed() {
+    this.state = "closed";
+    if (this.donut.selectedSlice)
+      this.donut.selectedSlice.hovering = false;
+    this.donut.showLabels = false;
+    this.resize.continueTo(RADIUS_CLOSED, 1);
+  }
+  
+  public void setOpen() {
+    if (this.state != "open") {
+      this.state = "open";
+      // attributes are initialized based on what's in the donut
+      Attributes.init(this.donut);
+      Attributes.select(this.donut.selectedSegment);
+      this.resize.continueTo(RADIUS_OPENED, 1);
+    }
+  }
+  
+  public void setState(state) {
+    this.state = state;
+  }
+
+  public String getType() {
+    return this.type; 
+  }
+
+	public void setNumValues(int numValues) {
+		this.numValues = numValues;
+	}
+
+  void setHovering(boolean b) {
+    hovering = b;
+  }
+  
+  // returns true if mouse is over resource but not hovering a donut slice
+	public boolean isHovering() {
+		return hovering && (!donut.selectedSlice || !donut.selectedSlice.hovering);
+	}
+
+  void setDragging(boolean b) {
+    dragging = b;
+  }
+
+	public boolean isDragging() {
+		return dragging;
+	}
+
+  public void addAttribute(Attribute attr) {
+    attributes.add(attr);
+  }
+  
+  // sets the selected attribute / corresponding segment/slice by attribute id
+  public void setSelectedAttribute(String attrId) {
+    DonutSegment s;
+    
+    for (int i=0; i<donut.segments.size(); i++) {
+      if (donut.segments[i].subject.id == attrId)
+        s = donut.segments[i];
+    }
+    
+    if (s) {
+      donut.setSelectedSlice(s.slices[0]);
+    }
+  }
+  
+  // a modulo function that behaves like that one in vvvv
+  public int vvvvmod(a,b) {
+    int res = a % b;
+    return (res>=0) ? res : 100 + res;
+  }
+  
+  public int d1(int i) {
+    return vvvvmod((this.progress-(100/NUM_LOADING_SEGMENTS)*i),100);
+  }
+  
+  public int d2(int i) {
+    return vvvvmod(((100/NUM_LOADING_SEGMENTS)*i-this.progress), 100);
+  }
+  
+  public float alpha(int i) {
+    var a = max(-(1/25)*(d1(i))+1, -(1/25)*(d2(i))+1);
+    return max(a,0.1);
+  }
+  
+  public void update() {
+    this.progress = (this.progress+3) % 100;
+    resize.tick(); // triggering the tween if active
+    donut.update();
+  }
+  
+  public void draw() {
+    noStroke();
+    if (loading) { // draw loading
+      // spacer
+      fill(255);
+      ellipse(this.x, this.y, donut.radius*2+35, donut.radius*2+35);
+      
+      float angle = 0;
+      
+      noFill();
+      stroke(DONUT_BACKGROUND);
+      
+      // segments
+      for (int i=0; i<NUM_LOADING_SEGMENTS; i++) {
+        curContext.lineCap = "butt"; // processing.js patch!
+        stroke(colors[i*2%11]);
+        curContext.globalAlpha = alpha(i);
+        strokeWeight(25);
+        float angleStart = angle;
+        angle += TWO_PI/NUM_LOADING_SEGMENTS;
+        arc(donut.x, donut.y, donut.radius*2, donut.radius*2, angleStart, angle);
+      }
+      
+      curContext.globalAlpha = 0.6;
+      
+      // segments
+      for (int i=0; i<NUM_LOADING_SEGMENTS; i++) {
+        angle += TWO_PI/NUM_LOADING_SEGMENTS;
+        
+        stroke(255);
+        strokeWeight(1);
+        line(this.x, this.y, this.x+cos(angle)*(donut.radius+15), this.y+sin(angle)*(donut.radius+15));
+      }
+      
+      curContext.globalAlpha = 1.0;
+      
+    } else {
+      if (this === g.selectedNode.subject)
+        donut.alpha = 1.0;
+      else if (this.hovering) {
+        donut.alpha = 0.7;
+      } else {
+        donut.alpha = 0.5;
+      }
+      
+      noStroke();
+      donut.draw();
+    }
+
+    if (hovering)
+      fill(0,0,0,150);
+    else
+      fill(66, 66, 66, 100);
+  
+    noStroke();
+    
+    curContext.textAlign = "center";
+    
+    if (!loading && !(state=="open" && getSelectedValue().hovering)) {
+      pushMatrix();
+      translate(10, 0); // shift it a bit for centering
+      noStroke();
+      fill(255);
+      curContext.font = "16px GraublauWeb";
+ 
+      float fWidth = curContext.measureText(this.getName()).width+25;
+      float yOffset = donut.radius+donut.selectedSegment.relativeBreadth()/2+15;
+
+      // label background
+      roundedRect(this.x-fWidth/2, this.y+yOffset, fWidth, 22, 10);
+      
+      if (state=="open")
+        fill(73, 71, 59);
+      else
+        fill(182,187,171);
+
+      ellipse(this.x-fWidth/2-5, this.y+yOffset+11, 30, 30);
+      
+      // draw label
+      fill(33);
+      curContext.fillText(this.getName(), this.x+2, this.y+yOffset+15);
+      
+      fill(255);
+      // draw resource index
+      curContext.font = "bold 18px Century Gothic";
+      curContext.textBaseline = "middle";
+      String idxstr = (this.idx<10) ? "0"+this.idx : this.idx;
+      curContext.fillText(idxstr, this.x-fWidth/2-5, this.y+yOffset+11);
+
+      noStroke();
+      curContext.textBaseline = "alphabetic";
+      popMatrix();
+    }
+      
+    if (donut.selectedSegment && state != "closed")
+      fill(donut.selectedSegment.col);
+    else
+      fill(233);
+      
+
+  }
+	
+	// based on current mouse position
+  void checkSelected() {  
+    for (int i=0; i < donut.segments.size(); i++) {
+      for (int j=0; j < donut.segments[i].slices.size(); j++) {
+        donut.segments[i].slices[j].checkSelected();
+      }
+    }
+  }
+		
+	public float currentRadius() {
+	  return donut.radius+35;
+	}
+	
+	public boolean mouseOver() {
+	  float disX = this.x - mouseX;
+	  float disY = this.y - mouseY;
+		
+	  if(sqrt(sq(disX) + sq(disY)) < donut.radius+STROKE_WEIGHT_COLLAPSED/2 ) {
+			hovering = true;
+	    return true;
+		} else {
+			hovering = false;
+			return false;
+		}
+	}
+}

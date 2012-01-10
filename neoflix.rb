@@ -70,13 +70,82 @@ get '/create_graph' do
   create_graph(neo)
 end
 
+# Begin Neovigator 
+
+  def link_to(url, text=url, opts={})
+    attributes = ""
+    opts.each { |key,value| attributes << key.to_s << "=\"" << value << "\" "}
+    "<a href=\"#{url}\" #{attributes}>#{text}</a>"
+  end
+
+  def neighbours
+    {"order"         => "depth first",
+     "uniqueness"    => "none",
+     "return filter" => {"language" => "builtin", "name" => "all_but_start_node"},
+     "depth"         => 1}
+  end
+
+  def node_id(node)
+    case node
+      when Hash
+        node["self"].split('/').last
+      when String
+        node.split('/').last
+      else
+        node
+    end
+  end
+
+  def get_properties(node)
+    properties = "<ul>"
+    node["data"].each_pair do |key, value|
+        properties << "<li><b>#{key}:</b> #{value}</li>"
+      end
+    properties + "</ul>"
+  end
+
+  get '/resources/show' do
+    content_type :json
+
+    node = neo.get_node(params[:id]) 
+    connections = neo.traverse(node, "fullpath", neighbours)
+    incoming = Hash.new{|h, k| h[k] = []}
+    outgoing = Hash.new{|h, k| h[k] = []}
+    nodes = Hash.new
+    attributes = Array.new
+
+    connections.each do |c|
+       c["nodes"].each do |n|
+         nodes[n["self"]] = n["data"]
+       end
+       rel = c["relationships"][0]
+
+       if rel["end"] == node["self"]
+         incoming["Incoming:#{rel["type"]}"] << {:values => nodes[rel["start"]].merge({:id => node_id(rel["start"]) }) }
+       else
+         outgoing["Outgoing:#{rel["type"]}"] << {:values => nodes[rel["end"]].merge({:id => node_id(rel["end"]) }) }
+       end
+    end
+
+      incoming.merge(outgoing).each_pair do |key, value|
+        attributes << {:id => key.split(':').last, :name => key, :values => value.collect{|v| v[:values]} }
+      end
+
+   attributes = [{"name" => "No Relationships","name" => "No Relationships","values" => [{"id" => "#{params[:id]}","name" => "No Relationships "}]}] if attributes.empty?
+
+    @node = {:details_html => "<h2>Neo ID: #{node_id(node)}</h2>\n<p class='summary'>\n#{get_properties(node)}</p>\n",
+              :data => {:attributes => attributes, 
+                        :name => node["data"]["name"],
+                        :id => node_id(node)}
+            }
+
+    @node.to_json
+
+  end
+
+# End Neovigator 
+
 get '/' do
-  puts "Indices:     " + neo.execute_script("g.indices;").to_s + " should be [""AUTOMATIC[vertices:Vertex][autoIndexKeys:null]""]"
-  puts "Vertices:    " + neo.execute_script("g.V.count();").to_s + " should be 9962"
-  puts "Edges:       " + neo.execute_script("g.E.count();").to_s + " should be 1012657"
-  puts "Movies:      " + neo.execute_script("g.idx('vertices')[[type:'Movie']].count();").to_s + " should be 3883"
-  puts "Genera:      " + neo.execute_script("g.idx('vertices')[[type:'Genera']].count();").to_s + " should be 18"
-  puts "Users:       " + neo.execute_script("g.idx('vertices')[[type:'User']].count();").to_s + " should be 6040"
-  puts "Occupations: " + neo.execute_script("g.idx('vertices')[[type:'Occupation']].count();").to_s + " should be 21"
-  puts "Genera:      " + neo.execute_script("g.idx('vertices')[[type:'Genera']].map();").to_s + " should be 18"
+    @neoid = params["neoid"]
+    haml :index
 end

@@ -105,7 +105,7 @@ end
   end
 
   def get_name(data)
-    case data["type"}
+    case data["type"]
       when "Movie"
         "Movie #{data["title"]}"
       when "Occupation"
@@ -114,6 +114,22 @@ end
         "User: #{data["userId"]} Gender: #{data["gender"]} Age: #{data["age"]}"
     end
   end
+
+  def get_recommendations(neo, node_id)
+    rec = neo.execute_script("m = [:];
+                              x = [] as Set;
+
+                              Gremlin.defineStep('corated',[Vertex,Pipe], { Integer stars ->
+                                _().inE('rated').filter{it.getProperty('stars') > stars}.outV.outE('rated').filter{it.getProperty('stars') > stars}.inV});
+
+                             g.v(node_id).out('hasGenera').aggregate(x).back(2).corated(3).filter{it != v}.filter{it.out('hasGenera')>>[] as Set == x}.title.groupCount(m) >> -1;
+                             m.sort{a,b -> b.value <=> a.value}[0..9];
+                             ", {:node_id => node_id})
+#    "<ol> #{rec.collect{ |e| "<li>#{e}</li>"}.join(' ')} </ol>"
+    "<ol> #{rec} </ol>"
+
+  end
+
 
   get '/resources/show' do
     content_type :json
@@ -148,7 +164,7 @@ end
 
    attributes = [{"name" => "No Relationships","name" => "No Relationships","values" => [{"id" => "#{params[:id]}","name" => "No Relationships "}]}] if attributes.empty?
 
-    @node = {:details_html => "<h2>Neo ID: #{node_id(node)}</h2>\n<p class='summary'>\n#{get_properties(node)}</p>\n",
+    @node = {:details_html => "<h2>Neo ID: #{node_id(node)}</h2>\n<p class='summary'>\n#{get_properties(node)}</p>\n #{get_recommendations(neo, node_id(node)) unless node["data"]["title"].nil?}",
               :data => {:attributes => attributes, 
                         :name => get_name(node["data"]),
                         :id => node_id(node)}

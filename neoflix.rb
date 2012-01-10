@@ -65,9 +65,7 @@ def create_graph(neo)
   end
 end
 
-create_graph(neo)
-
-get '/recreate_graph' do
+get '/create_graph' do
   neo.execute_script("g.clear();")
   create_graph(neo)
 end

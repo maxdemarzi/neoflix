@@ -119,7 +119,7 @@ end
     rec = neo.execute_script("m = [:];
                               x = [] as Set;
 
-                              Gremlin.defineStep('corated',[Vertex,Pipe], { Integer stars ->
+                              Gremlin.defineStep('corated',[Vertex,Pipe], { def stars ->
                                 _().inE('rated').filter{it.getProperty('stars') > stars}.outV.outE('rated').filter{it.getProperty('stars') > stars}.inV});
 
                              g.v(node_id).out('hasGenera').aggregate(x).back(2).corated(3).filter{it != v}.filter{it.out('hasGenera')>>[] as Set == x}.title.groupCount(m) >> -1;
@@ -147,19 +147,26 @@ end
        end
        rel = c["relationships"][0]
 
+
        if rel["end"] == node["self"]
-         incoming["#{rel["type"]}"] << {:values => nodes[rel["start"]].merge({:id => node_id(rel["start"]) }) }
+         incoming["Incoming:#{rel["type"]}"] << {:values => nodes[rel["start"]].merge({:id => node_id(rel["start"]) }) }
        else
-         if rel["data"]["stars"].nil?
-           outgoing["#{rel["type"]}"] << {:values => nodes[rel["end"]].merge({:id => node_id(rel["end"]) }) }
-         else
-           outgoing["#{rel["type"]} - #{rel["data"]["stars"]} stars"] << {:values => nodes[rel["end"]].merge({:id => node_id(rel["end"]) }) }
-         end
+         outgoing["Outgoing:#{rel["type"]}"] << {:values => nodes[rel["end"]].merge({:id => node_id(rel["end"]) }) }
        end
+
+#       if rel["end"] == node["self"]
+#         incoming["#{rel["type"]}"] << {:values => nodes[rel["start"]].merge({:id => node_id(rel["start"]) }) }
+#       else
+#         if rel["data"]["stars"].nil?
+#           outgoing["#{rel["type"]}"] << {:values => nodes[rel["end"]].merge({:id => node_id(rel["end"]) }) }
+#         else
+#           outgoing["#{rel["type"]} - #{rel["data"]["stars"]} stars"] << {:values => nodes[rel["end"]].merge({:id => node_id(rel["end"]) }) }
+#         end
+#       end
     end
 
       incoming.merge(outgoing).each_pair do |key, value|
-        attributes << {:id => key.split(':').last, :name => key, :values => value.collect{|v| v[:values]} }
+        attributes << {:id => key.split(':').last, :name => key, :values => value.collect{|v| v[:values]} + [{:name => get_name( node["data"] ) }] }
       end
 
    attributes = [{"name" => "No Relationships","name" => "No Relationships","values" => [{"id" => "#{params[:id]}","name" => "No Relationships "}]}] if attributes.empty?

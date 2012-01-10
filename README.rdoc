@@ -4,3 +4,11 @@ An implementation of a graph based movie recommender engine by Marko Rodriguez.
 
 http://markorodriguez.com/2011/09/22/a-graph-based-movie-recommender-engine
 
+
+Demo http://neoflix.heroku.com
+
+Deployment:
+
+  heroku create neoflix --stack cedar
+  heroku addons:add neo4j
+  git push heroku master

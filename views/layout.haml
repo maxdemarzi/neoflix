@@ -7,14 +7,14 @@
     %script{:src => "/js/ui.js"}
     %script{:src => "/js/processing.min.js"} 
 
-    %title Neovigator
+    %title Neoflix
 
   %body
     %canvas#neoviz
     %header
       %section#title
-        %h1 Neovigator
-        %p Neography Browser
+        %h1 Neoflix
+        %p Movie Recommender
       %section#search
         %form{:action => "/", :method => "get"}
           %label Node ID:
@@ -25,22 +25,24 @@
       = yield
     %aside
       %div#explanation
-        / Neovigator introduction
+        / Neoflix introduction
         %h2 About
         %p
-          Neovigator is an attempt to visually navigate through 
-          %a{:href => "http://neo4j.org"} Neo4j 
-          by using the 
-          %a{:href => "https://github.com/maxdemarzi/neography"} Neography
-          Gem.
-
-          It takes advantage of the latest HTML5 features
-          by using the canvas element for drawing.
+          Neoflix is an example app using the 
+          %a{:href => "https://github.com/maxdemarzi/neovigator", :target => "_blank"} Neovigator 
+          visualization.  It uses the 
+          %a{:href => "http://www.grouplens.org/node/73"} Movie Lens
+          dataset and the work of 
+          %a{:href => "https://twitter.com/#!/twarko"} Marko A. Rodriguez
+          as shown on his blog entry 
+          %a{:href => "http://markorodriguez.com/2011/09/22/a-graph-based-movie-recommender-engine/"} A Graph-Based Movie Recommender Engine
+          with some tweaks as shown on 
+          %a{:href => "http://maxdemarzi.com/2012/01/10/a-graph-based-…mender-website/"} A Graph-Based Movie Recommender Website
         %h3 Get started
         %p
           Start using the browser by just typing in the id of an existing node.
           You can see the available nodes at
-          %a{:href => "http://localhost:7474", :target => "_blank" } http://localhost:7474  
+          %a{:href => "http://de6ea8208:349e4479d@70825a524.hosted.neo4j.org:7014", :target => "_blank" } this Neo4j server  
           , try loading
           %a{:href => "/?neoid=1"} 
             %b Node 1
@@ -64,7 +66,7 @@
         %h3 Code          
         %p
           Available at
-          %a{:href => "https://github.com/maxdemarzi/neovigator", :target => "_blank"} Github    
+          %a{:href => "https://github.com/maxdemarzi/neoflix", :target => "_blank"} Github    
 
       <div id="browser_not_supported">
       Your Browser is currently not supported.<br/><br/>Try one of these:<br/>

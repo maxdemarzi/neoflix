@@ -104,6 +104,17 @@ end
     properties + "</ul>"
   end
 
+  def get_name(data)
+    case data["type"}
+      when "Movie"
+        "Movie #{data["title"]}"
+      when "Occupation"
+        "Occupation #{data["occupation"]}"
+      when "User"
+        "User: #{data["userId"]} Gender: #{data["gender"]} Age: #{data["age"]}"
+    end
+  end
+
   get '/resources/show' do
     content_type :json
 
@@ -121,9 +132,13 @@ end
        rel = c["relationships"][0]
 
        if rel["end"] == node["self"]
-         incoming["Incoming:#{rel["type"]}"] << {:values => nodes[rel["start"]].merge({:id => node_id(rel["start"]) }) }
+         incoming["#{rel["type"]}"] << {:values => nodes[rel["start"]].merge({:id => node_id(rel["start"]) }) }
        else
-         outgoing["Outgoing:#{rel["type"]}"] << {:values => nodes[rel["end"]].merge({:id => node_id(rel["end"]) }) }
+         if rel["data"]["stars"].nil?
+           outgoing["#{rel["type"]}"] << {:values => nodes[rel["end"]].merge({:id => node_id(rel["end"]) }) }
+         else
+           outgoing["#{rel["type"]} - #{rel["data"]["stars"]} stars"] << {:values => nodes[rel["end"]].merge({:id => node_id(rel["end"]) }) }
+         end
        end
     end
 
@@ -135,7 +150,7 @@ end
 
     @node = {:details_html => "<h2>Neo ID: #{node_id(node)}</h2>\n<p class='summary'>\n#{get_properties(node)}</p>\n",
               :data => {:attributes => attributes, 
-                        :name => node["data"]["name"],
+                        :name => get_name(node["data"]),
                         :id => node_id(node)}
             }
 

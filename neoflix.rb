@@ -152,9 +152,9 @@ end
 
        if rel["end"] == node["self"]
          if rel["data"]["stars"].nil?
-           incoming["#{rel["type"]}"] << {:values => nodes[rel["start"]].merge({:id => node_id(rel["start"]), :name => get_name(nodes[rel["end"]]) }) }
+           incoming["#{rel["type"]}"] << {:values => nodes[rel["start"]].merge({:id => node_id(rel["start"]), :name => get_name(nodes[rel["start"]]) }) }
          else
-           incoming["#{rel["type"]} - #{rel["data"]["stars"]} stars"] << {:values => nodes[rel["start"]].merge({:id => node_id(rel["start"]), :name => get_name(nodes[rel["end"]]) }) }
+           incoming["#{rel["type"]} - #{rel["data"]["stars"]} stars"] << {:values => nodes[rel["start"]].merge({:id => node_id(rel["start"]), :name => get_name(nodes[rel["start"]]) }) }
          end
        else
          if rel["data"]["stars"].nil?

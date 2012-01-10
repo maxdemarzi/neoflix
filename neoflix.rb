@@ -64,7 +64,7 @@ def create_graph(neo)
     puts "Creating the graph is going to take some time, watch it on #{ENV['NEO4J_URL'] || "http://localhost:7474"}"
   end
 end
-
+	
 get '/create_graph' do
   neo.execute_script("g.clear();")
   create_graph(neo)
@@ -151,19 +151,21 @@ end
 
 
        if rel["end"] == node["self"]
-            puts rel["data"]["stars"]
          if rel["data"]["stars"].nil?
            incoming["#{rel["type"]}"] << {:values => nodes[rel["start"]].merge({:id => node_id(rel["start"]), :name => get_name(nodes[rel["end"]]) }) }
          else
            incoming["#{rel["type"]} - #{rel["data"]["stars"]} stars"] << {:values => nodes[rel["start"]].merge({:id => node_id(rel["start"]), :name => get_name(nodes[rel["end"]]) }) }
          end
        else
-         outgoing["#{rel["type"]}"] << {:values => nodes[rel["end"]].merge({:id => node_id(rel["end"]), :name => get_name(nodes[rel["end"]])}) }
+         if rel["data"]["stars"].nil?
+           outgoing["#{rel["type"]}"] << {:values => nodes[rel["end"]].merge({:id => node_id(rel["end"]), :name => get_name(nodes[rel["end"]])}) }
+         else
+         outgoing["#{rel["type"]} - #{rel["data"]["stars"]} stars"] << {:values => nodes[rel["end"]].merge({:id => node_id(rel["end"]), :name => get_name(nodes[rel["end"]])}) }
        end
     end
 
       incoming.merge(outgoing).each_pair do |key, value|
-        attributes << {:id => key, :name => key, :values => value.collect{|v| v[:values]} + [{:name => get_name( node["data"] ) }] }
+        attributes << {:id => key, :name => key, :values => value.collect{|v| v[:values]}}
       end
 
    attributes = [{"name" => "No Relationships","name" => "No Relationships","values" => [{"id" => "#{params[:id]}","name" => "No Relationships "}]}] if attributes.empty?

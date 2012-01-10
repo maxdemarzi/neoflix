@@ -12,3 +12,5 @@ Deployment:
   heroku create neoflix --stack cedar
   heroku addons:add neo4j
   git push heroku master
+  http://neoflix.heroku.com/create_graph    # This will clear and recreate the graph
+

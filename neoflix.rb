@@ -112,6 +112,8 @@ end
         "Occupation #{data["occupation"]}"
       when "User"
         "User: #{data["userId"]} Gender: #{data["gender"]} Age: #{data["age"]}"
+      when "Genera"
+        "Genera #{data["genera"]}"
     end
   end
 
@@ -149,24 +151,19 @@ end
 
 
        if rel["end"] == node["self"]
-         incoming["Incoming:#{rel["type"]}"] << {:values => nodes[rel["start"]].merge({:id => node_id(rel["start"]) }) }
+            puts rel["data"]["stars"]
+         if rel["data"]["stars"].nil?
+           incoming["#{rel["type"]}"] << {:values => nodes[rel["start"]].merge({:id => node_id(rel["start"]), :name => get_name(nodes[rel["end"]]) }) }
+         else
+           incoming["#{rel["type"]} - #{rel["data"]["stars"]} stars"] << {:values => nodes[rel["start"]].merge({:id => node_id(rel["start"]), :name => get_name(nodes[rel["end"]]) }) }
+         end
        else
-         outgoing["Outgoing:#{rel["type"]}"] << {:values => nodes[rel["end"]].merge({:id => node_id(rel["end"]) }) }
+         outgoing["#{rel["type"]}"] << {:values => nodes[rel["end"]].merge({:id => node_id(rel["end"]), :name => get_name(nodes[rel["end"]])}) }
        end
-
-#       if rel["end"] == node["self"]
-#         incoming["#{rel["type"]}"] << {:values => nodes[rel["start"]].merge({:id => node_id(rel["start"]) }) }
-#       else
-#         if rel["data"]["stars"].nil?
-#           outgoing["#{rel["type"]}"] << {:values => nodes[rel["end"]].merge({:id => node_id(rel["end"]) }) }
-#         else
-#           outgoing["#{rel["type"]} - #{rel["data"]["stars"]} stars"] << {:values => nodes[rel["end"]].merge({:id => node_id(rel["end"]) }) }
-#         end
-#       end
     end
 
       incoming.merge(outgoing).each_pair do |key, value|
-        attributes << {:id => key.split(':').last, :name => key, :values => value.collect{|v| v[:values]} + [{:name => get_name( node["data"] ) }] }
+        attributes << {:id => key, :name => key, :values => value.collect{|v| v[:values]} + [{:name => get_name( node["data"] ) }] }
       end
 
    attributes = [{"name" => "No Relationships","name" => "No Relationships","values" => [{"id" => "#{params[:id]}","name" => "No Relationships "}]}] if attributes.empty?

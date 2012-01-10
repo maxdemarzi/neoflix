@@ -26,7 +26,7 @@ def create_graph(neo)
 
   neo.execute_script("g.setMaxBufferSize(1000);
 
-                    'https://raw.github.com/maxdemarzi/neoflix/master/data/movies.dat'.toURL().eachLine { def line ->
+                    'http://neoflix.heroku.com/movies.dat'.toURL().eachLine { def line ->
                        def components = line.split('::');
                        def movieVertex = g.addVertex(['type':'Movie', 'movieId':components[0].toInteger(), 'title':components[1]]);
                        components[2].split(/\|/).each { def genera ->
@@ -43,7 +43,7 @@ def create_graph(neo)
                        13:'retired', 14:'sales/marketing', 15:'scientist', 16:'self-employed',
                        17:'technician/engineer', 18:'tradesman/craftsman', 19:'unemployed', 20:'writer'];
 
-                     'https://raw.github.com/maxdemarzi/neoflix/master/data/users.dat'.toURL().eachLine { def line ->
+                     'http://neoflix.heroku.com/users.dat'.toURL().eachLine { def line ->
                        def components = line.split('::');
                        def userVertex = g.addVertex(['type':'User', 'userId':components[0].toInteger(), 'gender':components[1], 'age':components[2].toInteger()]);
                        def occupation = occupations[components[3].toInteger()];
@@ -52,7 +52,7 @@ def create_graph(neo)
                        g.addEdge(userVertex, occupationVertex, 'hasOccupation');
                      };
 
-                     'https://raw.github.com/maxdemarzi/neoflix/master/data/ratings.dat'.toURL().eachLine {def line ->
+                     'http://neoflix.heroku.com/ratings.dat'.toURL().eachLine {def line ->
                        def components = line.split('::');
                        def ratedEdge = g.addEdge(g.idx(Tokens.T.v)[[userId:components[0].toInteger()]].next(), g.idx(T.v)[[movieId:components[1].toInteger()]].next(), 'rated');
                        ratedEdge.setProperty('stars', components[2].toInteger());

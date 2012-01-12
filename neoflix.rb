@@ -29,7 +29,7 @@ def create_graph(neo)
                     'http://neoflix.heroku.com/movies.dat'.toURL().eachLine { def line ->
                        def components = line.split('::');
                        def movieVertex = g.addVertex(['type':'Movie', 'movieId':components[0].toInteger(), 'title':components[1]]);
-                       components[2].split('&').each { def genera ->
+                       components[2].split('\\\\|').each { def genera ->
                          def hits = g.idx(Tokens.T.v)[[genera:genera]].iterator();
                          def generaVertex = hits.hasNext() ? hits.next() : g.addVertex(['type':'Genera', 'genera':genera]);
                          g.addEdge(movieVertex, generaVertex, 'hasGenera');

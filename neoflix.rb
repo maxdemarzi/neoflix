@@ -1,30 +1,28 @@
 require 'rubygems'
 require 'neography'
 require 'sinatra'
+require 'haml'
+require 'cgi'
+require 'ruby-tmdb'
 
-Neography::Rest.default_options[:timeout] = 9000
+Tmdb.api_key = ENV['TMDB_KEY']
+Tmdb.default_language = "en"
+
+#require 'net-http-spy'
+#Net::HTTP.http_logger_options = {:verbose => true}
 
 neo = Neography::Rest.new(ENV['NEO4J_URL'] || "http://localhost:7474")
 
 def create_graph(neo)
-  # do not recreate the graph if it already exists
   return if neo.execute_script("g.idx('vertices')[[type:'Movie']].count();").to_i > 0
-
-  # Setup automatic Indexing on all vertices and all properties.   
-  # null => All keys or it can be a Set<String> of keys to automatically index 
 
   if neo.execute_script("g.indices;").empty?  
     neo.execute_script("g.createAutomaticIndex('vertices', Vertex.class, null);") 
-
-    # If vertices already existed prior to creating the AutomaticIndex, 
-    # then we reIndex all the vertices.
-
     neo.execute_script("AutomaticIndexHelper.reIndexElements(g, g.idx('vertices'), g.V);") if neo.execute_script("g.V.count();").to_i > 0
   end
 
   begin
-
-  neo.execute_script("g.setMaxBufferSize(1000);
+    neo.execute_script("g.setMaxBufferSize(1000);
 
                     'http://neoflix.heroku.com/movies.dat'.toURL().eachLine { def line ->
                        def components = line.split('::');
@@ -56,19 +54,15 @@ def create_graph(neo)
                        def components = line.split('::');
                        def ratedEdge = g.addEdge(g.idx(Tokens.T.v)[[userId:components[0].toInteger()]].next(), g.idx(T.v)[[movieId:components[1].toInteger()]].next(), 'rated');
                        ratedEdge.setProperty('stars', components[2].toInteger());
-                       }")
+                       };
 
-  puts "Loaded Data"
+                      g.stopTransaction(TransactionalGraph.Conclusion.SUCCESS);")
 
   rescue Timeout::Error 
     puts "Creating the graph is going to take some time, watch it on #{ENV['NEO4J_URL'] || "http://localhost:7474"}"
   end
 end
 	
-get '/create_graph' do
-  neo.execute_script("g.clear();")
-  create_graph(neo)
-end
 
 # Begin Neovigator 
 
@@ -104,6 +98,15 @@ end
     properties + "</ul>"
   end
 
+  def get_poster(node)
+    movie = TmdbMovie.find(:title => CGI::escape(node["data"]["title"] || ""), :limit => 1)
+    if movie.empty?
+     "No Movie Poster found"
+    else
+      movie.posters.first.url
+    end
+  end
+
   def get_name(data)
     case data["type"]
       when "Movie"
@@ -117,19 +120,29 @@ end
     end
   end
 
-  def get_recommendations(neo, node_id)
+  def get_recommendations(neo, node)
     rec = neo.execute_script("m = [:];
                               x = [] as Set;
-
-                              Gremlin.defineStep('corated',[Vertex,Pipe], { def stars ->
-                                _().inE('rated').filter{it.getProperty('stars') > stars}.outV.outE('rated').filter{it.getProperty('stars') > stars}.inV});
-
-                             g.v(node_id).out('hasGenera').aggregate(x).back(2).corated(3).filter{it != v}.filter{it.out('hasGenera')>>[] as Set == x}.title.groupCount(m) >> -1;
-                             m.sort{a,b -> b.value <=> a.value}[0..9];
-                             ", {:node_id => node_id})
-#    "<ol> #{rec.collect{ |e| "<li>#{e}</li>"}.join(' ')} </ol>"
-    "<ol> #{rec} </ol>"
-
+                              g.
+                              v(node_id).
+                              out('hasGenera').
+                              aggregate(x).
+                              back(2).
+                              inE('rated').
+                              filter{it.getProperty('stars') > 3}.
+                              outV.
+                              outE('rated').
+                              filter{it.getProperty('stars') > 3}.
+                              inV.
+                              filter{it != v}.
+                              filter{it.out('hasGenera').toList() == x}.
+                              title.
+                              groupCount(m);
+ 
+                              m.sort{a,b -> b.value <=> a.value}[0..9];
+                             ", {:node_id => node_id(node)})
+    return "" if rec == "{}"
+    "<ol> #{rec.collect{ |e| "<li>#{e}</li>"}.join(' ')} </ol>"
   end
 
 
@@ -171,7 +184,8 @@ end
 
    attributes = [{"name" => "No Relationships","name" => "No Relationships","values" => [{"id" => "#{params[:id]}","name" => "No Relationships "}]}] if attributes.empty?
 
-    @node = {:details_html => "<h2>Neo ID: #{node_id(node)}</h2>\n<p class='summary'>\n#{get_properties(node)}</p>\n #{get_recommendations(neo, node_id(node)) unless node["data"]["title"].nil?}",
+    @node = {:details_html => "<h2>#{node["data"]["title"]}</h2>" + get_poster(node),
+#              :data => {:attributes => node["data"]["title"] ? get_recommendations(neo, node) : attributes, 
               :data => {:attributes => attributes, 
                         :name => get_name(node["data"]),
                         :id => node_id(node)}
@@ -182,6 +196,11 @@ end
   end
 
 # End Neovigator 
+
+get '/create_graph' do
+  neo.execute_script("g.clear();")
+  create_graph(neo)
+end
 
 get '/' do
     @neoid = params["neoid"]

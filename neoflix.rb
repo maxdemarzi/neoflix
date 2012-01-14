@@ -8,8 +8,6 @@ require 'ruby-tmdb'
 Tmdb.api_key = ENV['TMDB_KEY']
 Tmdb.default_language = "en"
 
-#require 'net-http-spy'
-#Net::HTTP.http_logger_options = {:verbose => true}
 
 neo = Neography::Rest.new(ENV['NEO4J_URL'] || "http://localhost:7474")
 
@@ -64,46 +62,12 @@ def create_graph(neo)
 end
 	
 
-# Begin Neovigator 
-
-  def link_to(url, text=url, opts={})
-    attributes = ""
-    opts.each { |key,value| attributes << key.to_s << "=\"" << value << "\" "}
-    "<a href=\"#{url}\" #{attributes}>#{text}</a>"
-  end
-
-  def neighbours
-    {"order"         => "depth first",
-     "uniqueness"    => "none",
-     "return filter" => {"language" => "builtin", "name" => "all_but_start_node"},
-     "depth"         => 1}
-  end
-
-  def node_id(node)
-    case node
-      when Hash
-        node["self"].split('/').last
-      when String
-        node.split('/').last
-      else
-        node
-    end
-  end
-
-  def get_properties(node)
-    properties = "<ul>"
-    node["data"].each_pair do |key, value|
-        properties << "<li><b>#{key}:</b> #{value}</li>"
-      end
-    properties + "</ul>"
-  end
-
-  def get_poster(node)
-    movie = TmdbMovie.find(:title => CGI::escape(node["data"]["title"] || ""), :limit => 1)
+  def get_poster(data)
+    movie = TmdbMovie.find(:title => CGI::escape(data["title"] || ""), :limit => 1)
     if movie.empty?
      "No Movie Poster found"
     else
-      "<img src='#{movie.posters.first.url}'>"
+      "<a href='#{movie.url}' target='_blank'><img src='#{movie.posters.first.url}'><h3>#{movie.tagline}</h3><p>Rating: #{movie.rating} <br/>Rated: #{movie.certification}</p><p>#{movie.overview}</p>"
     end
   end
 
@@ -120,11 +84,12 @@ end
     end
   end
 
-  def get_recommendations(neo, node)
+  def get_recommendations(neo, node_id)
     rec = neo.execute_script("m = [:];
                               x = [] as Set;
-                              g.
-                              v(node_id).
+                              v = g.v(node_id);
+                              
+                              v.
                               out('hasGenera').
                               aggregate(x).
                               back(2).
@@ -135,74 +100,38 @@ end
                               filter{it.getProperty('stars') > 3}.
                               inV.
                               filter{it != v}.
-                              filter{it.out('hasGenera').toList() == x}.
+                              filter{it.out('hasGenera').toSet().equals(x)}.
                               title.
                               groupCount(m);
  
-                              m.sort{a,b -> b.value <=> a.value}[0..9];
-                             ", {:node_id => node_id(node)})
-    return "" if rec == "{}"
+                              m.sort{a,b -> b.value <=> a.value}[0..9];",
+                              {:node_id => node_id.to_i}
+                              )
+
+    return [{"id" => node_id ,"name" => "No Recommendations","values" => [{"id" => "#{node_id}","name" => "No Recommendations"}]}] if rec == "{}"
+    puts rec.inspect
     "<ol> #{rec.collect{ |e| "<li>#{e}</li>"}.join(' ')} </ol>"
   end
 
-
   get '/resources/show' do
+    response.headers['Cache-Control'] = 'public, max-age=2592000'
     content_type :json
 
     node = neo.get_node(params[:id]) 
-    connections = neo.traverse(node, "fullpath", neighbours)
-    incoming = Hash.new{|h, k| h[k] = []}
-    outgoing = Hash.new{|h, k| h[k] = []}
-    nodes = Hash.new
-    attributes = Array.new
 
-    connections.each do |c|
-       c["nodes"].each do |n|
-         nodes[n["self"]] = n["data"]
-       end
-       rel = c["relationships"][0]
-
-
-       if rel["end"] == node["self"]
-         if rel["data"]["stars"].nil?
-           incoming["#{rel["type"]}"] << {:values => nodes[rel["start"]].merge({:id => node_id(rel["start"]), :name => get_name(nodes[rel["start"]]) }) }
-         else
-           incoming["#{rel["type"]} - #{rel["data"]["stars"]} stars"] << {:values => nodes[rel["start"]].merge({:id => node_id(rel["start"]), :name => get_name(nodes[rel["start"]]) }) }
-         end
-       else
-         if rel["data"]["stars"].nil?
-           outgoing["#{rel["type"]}"] << {:values => nodes[rel["end"]].merge({:id => node_id(rel["end"]), :name => get_name(nodes[rel["end"]])}) }
-         else
-           outgoing["#{rel["type"]} - #{rel["data"]["stars"]} stars"] << {:values => nodes[rel["end"]].merge({:id => node_id(rel["end"]), :name => get_name(nodes[rel["end"]])}) }
-         end
-       end
-    end
-
-      incoming.merge(outgoing).each_pair do |key, value|
-        attributes << {:id => key, :name => key, :values => value.collect{|v| v[:values]}}
-      end
-
-   attributes = [{"name" => "No Relationships","name" => "No Relationships","values" => [{"id" => "#{params[:id]}","name" => "No Relationships "}]}] if attributes.empty?
-
-    @node = {:details_html => "<h2>#{node["data"]["title"]}</h2>" + get_poster(node),
-#              :data => {:attributes => node["data"]["title"] ? get_recommendations(neo, node) : attributes, 
-              :data => {:attributes => attributes, 
-                        :name => get_name(node["data"]),
-                        :id => node_id(node)}
-            }
-
-    @node.to_json
-
+    {:details_html => "<h2>#{get_name(node["data"])}</h2>" + get_poster(node["data"]),
+     :data => {:attributes => get_recommendations(neo, params[:id]),
+               :name => get_name(node["data"]),
+               :id => params[:id]}
+     }.to_json
   end
 
-# End Neovigator 
+  get '/create_graph' do
+    neo.execute_script("g.clear();")
+    create_graph(neo)
+  end
 
-get '/create_graph' do
-  neo.execute_script("g.clear();")
-  create_graph(neo)
-end
-
-get '/' do
+  get '/' do
     @neoid = params["neoid"]
     haml :index
-end
+  end

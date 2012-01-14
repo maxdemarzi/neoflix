@@ -1,14 +1,14 @@
 !!!
 %html
   %head
+    %link(rel="stylesheet" href="/css/jquery-ui.css")
     %link(rel="stylesheet" href="/css/global.css")
     %script{:src => "http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"}
     %script{:src => "http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.16/jquery-ui.min.js"}
     %script{:src => "/js/ui.js"}
     %script{:src => "/js/processing.min.js"} 
-
+    %script{:src => "/js/movies.js"}
     %title Neoflix
-
   %body
     %canvas#neoviz
     %header
@@ -17,9 +17,10 @@
         %p Movie Recommender
       %section#search
         %form{:action => "/", :method => "get"}
-          %label Node ID:
-          %input#neoid{:type => "text", :value => "#{@neoid}", :name => "neoid"}
-          %input#loadnode{:type => "submit", :value => "Load", :class => "button"}
+          .ui-widget
+            %label Movie:
+            %input#movies{:name => "id"}
+            %input#loadnode{:type => "submit", :value => "Load", :class => "button"}
       %br{:style => "clear: both;"}
     %section#content
       = yield

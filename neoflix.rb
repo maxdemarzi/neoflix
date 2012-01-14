@@ -8,7 +8,6 @@ require 'ruby-tmdb'
 Tmdb.api_key = ENV['TMDB_KEY']
 Tmdb.default_language = "en"
 
-
 neo = Neography::Rest.new(ENV['NEO4J_URL'] || "http://localhost:7474")
 
 def create_graph(neo)
@@ -84,6 +83,17 @@ end
     end
   end
 
+  def node_id(node)
+    case node
+      when Hash
+        node["self"].split('/').last
+      when String
+        node.split('/').last
+      else
+        node
+    end
+  end
+
   def get_recommendations(neo, node_id)
     rec = neo.execute_script("m = [:];
                               x = [] as Set;
@@ -117,12 +127,18 @@ end
     response.headers['Cache-Control'] = 'public, max-age=2592000'
     content_type :json
 
-    node = neo.get_node(params[:id]) 
+    if params[:id].is_numeric?
+      node = neo.get_node(params[:id])
+    else
+      node = neo.execute_script("g.idx(Tokens.T.v)[[title:'#{CGI::unescape(params[:id])}']].next();")
+    end
+
+    id = node_id(node)
 
     {:details_html => "<h2>#{get_name(node["data"])}</h2>" + get_poster(node["data"]),
-     :data => {:attributes => get_recommendations(neo, params[:id]),
+     :data => {:attributes => get_recommendations(neo, id),
                :name => get_name(node["data"]),
-               :id => params[:id]}
+               :id => id}
      }.to_json
   end
 
@@ -132,6 +148,15 @@ end
   end
 
   get '/' do
-    @neoid = params["neoid"]
+    @neoid = params["movies"]
     haml :index
   end
+
+class String
+  def is_numeric?
+    Float(self)
+    true 
+  rescue 
+    false
+  end
+end

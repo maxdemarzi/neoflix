@@ -87,8 +87,9 @@ end
   def get_recommendations(neo, node_id)
     rec = neo.execute_script("m = [:];
                               x = [] as Set;
-                             
-                              g.v(1).
+                              v = g.v(node_id);
+
+                              v.
                               out('hasGenera').
                               aggregate(x).
                               back(2).
@@ -98,15 +99,16 @@ end
                               outE('rated').
                               filter{it.getProperty('stars') > 3}.
                               inV.
-                              filter{it != g.v(1)}.
+                              filter{it != v}.
                               filter{it.out('hasGenera').toSet().equals(x)}.
                               groupCount(m){\"${it.id}:${it.title.replaceAll(',',' ')}\"}.iterate();
  
-                              m.sort{a,b -> b.value <=> a.value}[0..9];")
+                              m.sort{a,b -> b.value <=> a.value}[0..9];",
+                              {:node_id => node_id.to_i})
 
     return [{"id" => node_id ,"name" => "No Recommendations","values" => [{"id" => "#{node_id}","name" => "No Recommendations"}]}] if rec == "{}"
 
-    values = rec[1..rec.size-1].split(',').collect{ |v| {:id => v.split(':')[0], :name => v.split(':')[1] } }
+    values = rec[1..rec.size-1].split(',').collect{ |v| {:id => v.split(':')[0].strip, :name => v.split(':')[1] } }
 
     [{"id" => node_id ,"name" => "Recommendations","values" => values }]
   end

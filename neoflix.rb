@@ -74,13 +74,13 @@ end
   def get_name(data)
     case data["type"]
       when "Movie"
-        "Movie #{data["title"]}"
+        data["title"]
       when "Occupation"
-        "Occupation #{data["occupation"]}"
+        data["occupation"]
       when "User"
-        "User: #{data["userId"]} Gender: #{data["gender"]} Age: #{data["age"]}"
+        "#{data["userId"]} Gender: #{data["gender"]} Age: #{data["age"]}"
       when "Genera"
-        "Genera #{data["genera"]}"
+        data["genera"]
     end
   end
 

@@ -113,7 +113,7 @@ end
                               filter{it.out('hasGenera').toSet().equals(x)}.
                               groupCount(m){\"${it.id}:${it.title.replaceAll(',',' ')}\"}.iterate();
  
-                              m.sort{a,b -> b.value <=> a.value}[0..9];",
+                              m.sort{a,b -> b.value <=> a.value}[0..24];",
                               {:node_id => node_id.to_i})
 
     return [{"id" => node_id ,"name" => "No Recommendations","values" => [{"id" => "#{node_id}","name" => "No Recommendations"}]}] if rec == "{}"

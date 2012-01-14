@@ -103,7 +103,7 @@ end
     if movie.empty?
      "No Movie Poster found"
     else
-      movie.posters.first.url
+      "<img src='#{movie.posters.first.url}'>"
     end
   end
 

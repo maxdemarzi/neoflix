@@ -181,13 +181,10 @@ public class DonutSegment {
     if (this===donut.selectedSegment && donut.showLabels) {
       fill(col);
        curContext.font = "40px GraublauWeb";
-       curContext.fillText(this.slices.size(), donut.x, donut.y+15);
+       curContext.fillText(this.slices.size(), donut.x, donut.y-25, 120);
        
-       curContext.font = "20px GraublauWeb";
-       curContext.fillText("Relationships", donut.x, donut.y+40);
-
       curContext.font = "20px GraublauWeb";
-      curContext.fillText(this.subject.getName(), donut.x, donut.y-25, 120);
+      curContext.fillText(this.subject.getName(), donut.x, donut.y+15);
 
       noStroke();
       //ellipse(donut.x, donut.y, 14, 14);

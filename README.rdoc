@@ -5,12 +5,31 @@ An implementation of a graph based movie recommender engine by Marko Rodriguez.
 http://markorodriguez.com/2011/09/22/a-graph-based-movie-recommender-engine
 
 
-Demo http://neoflix.heroku.com
+Demo http://neoflix.herokuapp.com
 
-Deployment:
 
-  heroku create neoflix --stack cedar
+Deployment (Local):
+
+  git clone git@github.com:maxdemarzi/neoflix.git
+  cd neoflix
+  bundle install
+  rake neo4j:install
+  rake neo4j:start
+  rake neo4j:create                 # This will create the graph
+  rackup
+
+Deployment (Heroku):
+
+  git clone git@github.com:maxdemarzi/neoflix.git
+  cd neoflix
+  bundle install
+  heroku apps:create neoflix --stack cedar
   heroku addons:add neo4j
   git push heroku master
-  http://neoflix.herokuapp.com/create_graph    # This will clear and recreate the graph
+  heroku run rake neo4j:create       # This will create the graph
 
+See Blog posts for more information:
+
+http://maxdemarzi.com/2012/01/13/neo4j-on-heroku-part-one/
+http://maxdemarzi.com/2012/01/16/neo4j-on-heroku-part-two/
+http://maxdemarzi.com/2012/01/18/neo4j-on-heroku-part-three/

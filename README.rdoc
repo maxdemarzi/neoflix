@@ -30,6 +30,9 @@ Deployment (Heroku):
 
 See Blog posts for more information:
 
-http://maxdemarzi.com/2012/01/13/neo4j-on-heroku-part-one/
-http://maxdemarzi.com/2012/01/16/neo4j-on-heroku-part-two/
-http://maxdemarzi.com/2012/01/18/neo4j-on-heroku-part-three/
+http://maxdemarzi.com/2012/01/13/neo4j-on-heroku-part-one
+
+http://maxdemarzi.com/2012/01/16/neo4j-on-heroku-part-two
+
+http://maxdemarzi.com/2012/01/18/neo4j-on-heroku-part-three
+

@@ -142,11 +142,6 @@ end
      }.to_json
   end
 
-  get '/create_graph' do
-    neo.execute_script("g.clear();")
-    create_graph(neo)
-  end
-
   get '/' do
     @neoid = params["movies"]
     haml :index

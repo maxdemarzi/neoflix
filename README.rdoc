@@ -16,6 +16,7 @@ Deployment (Local):
   rake neo4j:install
   rake neo4j:start
   rake neo4j:create                 # This will create the graph
+  export TMDB_KEY=YOUR_TMDB_KEY     # See blog posts for how to get one.
   rackup
 
 Deployment (Heroku):
@@ -25,6 +26,7 @@ Deployment (Heroku):
   bundle install
   heroku apps:create neoflix --stack cedar
   heroku addons:add neo4j
+  heroku config:add TMDB_KEY=YOUR_TMDB_KEY  # See blog posts
   git push heroku master
   heroku run rake neo4j:create       # This will create the graph
 

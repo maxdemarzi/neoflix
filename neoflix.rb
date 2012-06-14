@@ -117,8 +117,8 @@ end
                               {:node_id => node_id.to_i})
 
     return [{"id" => node_id ,"name" => "No Recommendations","values" => [{"id" => "#{node_id}","name" => "No Recommendations"}]}] if rec == "{}"
-
-    values = rec.split(',').collect{ |v| {:id => v[0].split(':')[0].strip, :name => v[0].split(':')[1] } }
+    
+    values = rec.collect{ |v| {:id => v[0].split(":").first.strip, :name => v[0].split(":").last }}
 
     [{"id" => node_id ,"name" => "Recommendations","values" => values }]
   end

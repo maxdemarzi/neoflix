@@ -130,7 +130,7 @@ end
     if params[:id].is_numeric?
       node = neo.get_node(params[:id])
     else
-      node = neo.execute_script("g.idx(Tokens.T.v)[[title:'#{CGI::unescape(params[:id])}']].next();")
+      node = neo.execute_script("g.idx(Tokens.T.v)[[title:\"#{CGI::unescape(params[:id])}\"]].next();")
     end
 
     id = node_id(node)

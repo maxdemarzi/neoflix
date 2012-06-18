@@ -118,7 +118,7 @@ end
 
     return [{"id" => node_id ,"name" => "No Recommendations","values" => [{"id" => "#{node_id}","name" => "No Recommendations"}]}] if rec == "{}"
 
-    values = rec[1..rec.size-1].split(',').collect{ |v| {:id => v.split(':')[0].strip, :name => v.split(':')[1] } }
+    values = rec.collect{ |v| {:id => v[0].split(':')[0].strip, :name => v[0].split(':')[1] } }
 
     [{"id" => node_id ,"name" => "Recommendations","values" => values }]
   end
@@ -130,7 +130,7 @@ end
     if params[:id].is_numeric?
       node = neo.get_node(params[:id])
     else
-      node = neo.execute_script("g.idx(Tokens.T.v)[[title:'#{CGI::unescape(params[:id])}']].next();")
+      node = neo.execute_script("g.idx(Tokens.T.v)[[title:\"#{CGI::unescape(params[:id])}\"]].next();")
     end
 
     id = node_id(node)
@@ -140,11 +140,6 @@ end
                :name => get_name(node["data"]),
                :id => id}
      }.to_json
-  end
-
-  get '/create_graph' do
-   # neo.execute_script("g.clear();")
-   # create_graph(neo)
   end
 
   get '/' do

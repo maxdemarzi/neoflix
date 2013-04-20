@@ -11,8 +11,13 @@ Tmdb.default_language = "en"
 neo = Neography::Rest.new(ENV['NEO4J_URL'] || "http://localhost:7474")
 
 def create_graph(neo)
-  return if neo.execute_script("g.idx('vertices')[[type:'Movie']].count();").to_i > 0
-
+    begin
+     neo.execute_script("g.idx('vertices')[[type:'Movie']].count();").to_i > 0
+     return 
+    rescue
+      puts "Creating Database"
+    end
+  
   if neo.execute_script("g.indices;").empty?  
     neo.execute_script("g.createAutomaticIndex('vertices', Vertex.class, null);") 
     neo.execute_script("AutomaticIndexHelper.reIndexElements(g, g.idx('vertices'), g.V);") if neo.execute_script("g.V.count();").to_i > 0
@@ -55,7 +60,7 @@ def create_graph(neo)
 
                       g.stopTransaction(TransactionalGraph.Conclusion.SUCCESS);")
 
-  rescue Timeout::Error 
+  rescue
     puts "Creating the graph is going to take some time, watch it on #{ENV['NEO4J_URL'] || "http://localhost:7474"}"
   end
 end
